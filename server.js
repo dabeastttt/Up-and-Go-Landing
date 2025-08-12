@@ -73,17 +73,27 @@ async function sendSmsWithRetry(msg, to, maxRetries = 2) {
   }
 }
 
-// POST /send-sms (just sends SMS, no DB interaction)
 app.post('/send-sms', smsLimiter, async (req, res) => {
   const { name, phone, signupTime } = req.body;
 
-  const timeTaken = Date.now() - Number(signupTime || 0);
-  if (timeTaken < 1000) return res.status(400).send('Bot-like behavior');
+  console.log('Received send-sms request:', { name, phone, signupTime });
 
-  if (!phone) return res.status(400).send('Phone number required');
+  const timeTaken = Date.now() - Number(signupTime || 0);
+  if (timeTaken < 1000) {
+    console.log('Rejected due to bot-like behavior');
+    return res.status(400).send('Bot-like behavior');
+  }
+
+  if (!phone) {
+    console.log('Rejected: phone number missing');
+    return res.status(400).send('Phone number required');
+  }
 
   const formattedPhone = formatPhone(phone);
-  if (!isValidAUSMobile(formattedPhone)) return res.status(400).send('Invalid Australian mobile number');
+  if (!isValidAUSMobile(formattedPhone)) {
+    console.log('Rejected: invalid Australian mobile number', formattedPhone);
+    return res.status(400).send('Invalid Australian mobile number');
+  }
 
   const smsMessages = [ 
     `Hey ${name || 'legend'}, you’re officially on the TradeAssist waitlist — no more missed jobs, even when you’re neckin' an Up & Go on the run!`,
@@ -92,12 +102,14 @@ app.post('/send-sms', smsLimiter, async (req, res) => {
 
   try {
     for (const msg of smsMessages) {
+      console.log(`Sending SMS to ${formattedPhone}: ${msg}`);
       await sendSmsWithRetry(msg, formattedPhone);
       await delay(1500);
     }
+    console.log('SMS sent successfully');
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error('❌ Error sending SMS:', err.message);
+    console.error('❌ Error sending SMS:', err);
     res.status(500).send('Failed to send SMS');
   }
 });
