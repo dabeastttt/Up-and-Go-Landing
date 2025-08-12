@@ -418,7 +418,8 @@ main {
       loadingScreen.style.display = 'block';
       button.disabled = true;
 
-      form.signupTime.value = Date.now().toString();
+      form.signupTime.value = String(Date.now());
+
 
       const formData = {
        name: form.name.value.trim(),
