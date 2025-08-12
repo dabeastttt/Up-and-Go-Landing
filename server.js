@@ -78,16 +78,15 @@ app.post('/send-sms', smsLimiter, async (req, res) => {
 
   console.log('Received send-sms request:', { name, phone, signupTime });
 
-const timeTaken = Date.now() - Number(signupTime || 0);
-if (timeTaken < -10000) {
-  console.log('SignupTime is suspiciously in the future');
-  return res.status(400).send('Invalid signupTime');
-}
-if (timeTaken < 1000) {
-  console.log('Rejected due to bot-like behavior');
-  return res.status(400).send('Bot-like behavior');
-}
-
+  // const timeTaken = Date.now() - Number(signupTime || 0);
+  // if (timeTaken < -10000) {
+  //   console.log('SignupTime is suspiciously in the future');
+  //   return res.status(400).send('Invalid signupTime');
+  // }
+  // if (timeTaken < 1000) {
+  //   console.log('Rejected due to bot-like behavior');
+  //   return res.status(400).send('Bot-like behavior');
+  // }
 
   if (!phone) {
     console.log('Rejected: phone number missing');
@@ -118,6 +117,7 @@ if (timeTaken < 1000) {
     res.status(500).send('Failed to send SMS');
   }
 });
+
 
 // GET /success
 app.get('/success', (req, res) => {
