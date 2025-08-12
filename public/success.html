@@ -262,19 +262,6 @@
   animate();
 
   // 🎯 Fetch waitlist position and show it
-  async function showWaitlistPosition() {
-    try {
-      const res = await fetch('/signup-count');
-      if (!res.ok) throw new Error('Failed to fetch waitlist count');
-      const data = await res.json();
-      const count = data.count || 0;
-
-      const positionEl = document.getElementById('waitlistPosition');
-      positionEl.innerHTML = `🔥 You’re #${count} on the waitlist.`;
-    } catch (err) {
-      console.error('Could not fetch waitlist position:', err);
-    }
-  }
-
-  showWaitlistPosition();
+const positionEl = document.getElementById('waitlistPosition');
+  positionEl.textContent = "🔥 Thanks for joining the waitlist! We'll be in touch soon.";
 </script>

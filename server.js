@@ -95,7 +95,7 @@ app.post('/send-sms', smsLimiter, async (req, res) => {
       await sendSmsWithRetry(msg, formattedPhone);
       await delay(1500);
     }
-    res.redirect('/success');
+    res.status(200).json({ success: true });
   } catch (err) {
     console.error('❌ Error sending SMS:', err.message);
     res.status(500).send('Failed to send SMS');
