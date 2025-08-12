@@ -132,38 +132,77 @@ app.post('/sms', async (req, res) => {
   console.log(`📩 Incoming SMS from ${from}: ${incomingMsg}`);
 
   const tradeFlavours = {
-    sparky: 'Chocolate',
-    electrician: 'Chocolate',
-    plumber: 'Strawberry',
-    carpenter: 'Honeycomb',
-    builder: 'Chocolate',
-    painter: 'Strawberry'
-  };
-
-  let reply;
-  if (tradeFlavours[incomingMsg]) {
-    reply = `Based on being a ${incomingMsg}, I’m guessing your favourite Up & Go flavour is ${tradeFlavours[incomingMsg]} 🥤. Did I nail it?`;
-  } else {
-    try {
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: 'You are a fun AI that guesses someone’s favourite Up & Go flavour based on their trade.' },
-          { role: 'user', content: `Their trade is: ${incomingMsg}` }
-        ]
-      });
-      reply = completion.data.choices[0].message.content;
-    } catch (err) {
-      console.error('❌ OpenAI error:', err.message);
-      reply = "Sorry, I'm having trouble responding right now. Try again shortly.";
-    }
+  sparky: {
+    flavour: 'Chocolate',
+    replies: [
+      `Hey Sparky! I bet your favourite Up & Go flavour is ${'Chocolate'} 🥤. Am I right?`,
+      `Sparky, you must love ${'Chocolate'} Up & Go! How close am I?`,
+      `I’m guessing as a Sparky, you pick ${'Chocolate'} every time!`
+    ]
+  },
+  electrician: {
+    flavour: 'Chocolate',
+    replies: [
+      `Being an electrician, I figure you’re a ${'Chocolate'} fan 🥤. True?`,
+      `Electrician’s pick is usually ${'Chocolate'}. How’d I do?`,
+      `You’re an electrician — so it’s gotta be ${'Chocolate'}, right?`
+    ]
+  },
+  plumber: {
+    flavour: 'Strawberry',
+    replies: [
+      `Plumber’s choice? I say ${'Strawberry'} 🥤. How close am I?`,
+      `You must be loving that ${'Strawberry'} Up & Go, plumber!`,
+      `I’m betting as a plumber, you go for ${'Strawberry'}.`
+    ]
+  },
+  carpenter: {
+    flavour: 'Honeycomb',
+    replies: [
+      `Carpenter vibes say ${'Honeycomb'} 🥤 is your fave. Correct?`,
+      `I think carpenters dig the ${'Honeycomb'} flavour!`,
+      `You’re a carpenter? ${'Honeycomb'} it is!`
+    ]
+  },
+  builder: {
+    flavour: 'Chocolate',
+    replies: [
+      `Builder’s top pick: ${'Chocolate'} 🥤. Spot on?`,
+      `I’m thinking you like ${'Chocolate'} Up & Go, builder!`,
+      `Builder means ${'Chocolate'} all the way, right?`
+    ]
+  },
+  painter: {
+    flavour: 'Strawberry',
+    replies: [
+      `Painter’s palette is ${'Strawberry'} flavour 🥤. True?`,
+      `You paint the town red, and drink ${'Strawberry'} Up & Go!`,
+      `Painter’s pick: definitely ${'Strawberry'}.`
+    ]
   }
+};
 
-  const MessagingResponse = twilio.twiml.MessagingResponse;
-  const twiml = new MessagingResponse();
-  twiml.message(reply);
-  res.type('text/xml').send(twiml.toString());
-});
+let reply;
+if (tradeFlavours[incomingMsg]) {
+  const replies = tradeFlavours[incomingMsg].replies;
+  // Pick a random reply
+  reply = replies[Math.floor(Math.random() * replies.length)];
+} else {
+  // Your existing OpenAI fallback
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: 'You are a fun AI that guesses someone’s favourite Up & Go flavour based on their trade.' },
+        { role: 'user', content: `Their trade is: ${incomingMsg}` }
+      ]
+    });
+    reply = completion.data.choices[0].message.content;
+  } catch (err) {
+    console.error('❌ OpenAI error:', err.message);
+    reply = "Sorry, I'm having trouble responding right now. Try again shortly.";
+  }
+}
 
 // Start server
 const host = process.env.HOST || '0.0.0.0';
