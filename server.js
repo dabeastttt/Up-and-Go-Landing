@@ -204,6 +204,12 @@ if (tradeFlavours[incomingMsg]) {
   }
 }
 
+  // Then send the Twilio response
+  const MessagingResponse = require('twilio').twiml.MessagingResponse;
+  const twiml = new MessagingResponse();
+  twiml.message(reply);
+  res.type('text/xml').send(twiml.toString());
+
 });
 
 // Start server
