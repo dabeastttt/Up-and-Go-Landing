@@ -80,9 +80,7 @@ async function sendSmsWithRetry(msg, to, maxRetries = 2) {
 
 // POST /send-sms
 app.post('/send-sms', smsLimiter, async (req, res) => {
-  const { name, business, email, phone, honeypot, signupTime } = req.body;
-
-  if (honeypot && honeypot.trim() !== '') return res.status(400).send('Bot detected');
+  const { name, business, email, phone, signupTime } = req.body;
 
   const timeTaken = Date.now() - Number(signupTime || 0);
   if (timeTaken < 1000) return res.status(400).send('Bot-like behavior');
@@ -145,32 +143,47 @@ app.get('/success', (req, res) => {
 
 // POST /sms - Twilio webhook
 app.post('/sms', async (req, res) => {
-  const incomingMsg = req.body.Body;
+  const incomingMsg = req.body.Body.trim().toLowerCase();
   const from = req.body.From;
 
   console.log(`📩 Incoming SMS from ${from}: ${incomingMsg}`);
 
-  try {
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: incomingMsg }]
-    });
+  // Simple rule-based flavour guess
+  const tradeFlavours = {
+    sparky: 'Chocolate',
+    electrician: 'Chocolate',
+    plumber: 'Strawberry',
+    carpenter: 'Honeycomb',
+    builder: 'Chocolate',
+    painter: 'Strawberry'
+  };
 
-    const reply = completion.data.choices[0].message.content;
+  let reply;
+  if (tradeFlavours[incomingMsg]) {
+    reply = `Based on being a ${incomingMsg}, I’m guessing your favourite Up & Go flavour is ${tradeFlavours[incomingMsg]} 🥤. Did I nail it?`;
+  } else {
+    // Fall back to AI if trade not in our list
+    try {
+      const completion = await openai.createChatCompletion({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: 'You are a fun AI that guesses someone’s favourite Up & Go flavour based on their trade.' },
+          { role: 'user', content: `Their trade is: ${incomingMsg}` }
+        ]
+      });
 
-    const MessagingResponse = twilio.twiml.MessagingResponse;
-    const twiml = new MessagingResponse();
-    twiml.message(reply);
-
-    res.type('text/xml').send(twiml.toString());
-  } catch (err) {
-    console.error('❌ OpenAI error:', err.message);
-
-    const MessagingResponse = twilio.twiml.MessagingResponse;
-    const twiml = new MessagingResponse();
-    twiml.message("Sorry, I'm having trouble responding right now. Try again shortly.");
-    res.type('text/xml').send(twiml.toString());
+      reply = completion.data.choices[0].message.content;
+    } catch (err) {
+      console.error('❌ OpenAI error:', err.message);
+      reply = "Sorry, I'm having trouble responding right now. Try again shortly.";
+    }
   }
+
+  // Send reply to Twilio
+  const MessagingResponse = twilio.twiml.MessagingResponse;
+  const twiml = new MessagingResponse();
+  twiml.message(reply);
+  res.type('text/xml').send(twiml.toString());
 });
 
 // Start server
