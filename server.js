@@ -20,6 +20,9 @@ const openai = new OpenAI({
 const app = express();
 const port = process.env.PORT || 3001;
 
+app.set('trust proxy', 1);
+
+
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
