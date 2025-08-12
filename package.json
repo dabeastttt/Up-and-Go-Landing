@@ -16,7 +16,7 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",
-    "openai": "^5.11.0",
+    "openai": "^5.12.2",
     "twilio": "^5.8.0"
   }
 }

@@ -5,7 +5,9 @@ const path = require('path');
 const twilio = require('twilio');
 const rateLimit = require('express-rate-limit');
 const { createClient } = require('@supabase/supabase-js');
-const { Configuration, OpenAIApi } = require('openai');
+
+// For OpenAI latest SDK in CommonJS, import dynamically:
+const OpenAI = require('openai').default;
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -22,10 +24,10 @@ const client = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-// OpenAI
-const openai = new OpenAIApi(
-  new Configuration({ apiKey: process.env.OPENAI_API_KEY })
-);
+// OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Middleware
 app.use(bodyParser.json());
@@ -164,13 +166,14 @@ app.post('/sms', async (req, res) => {
   } else {
     // Fall back to AI if trade not in our list
     try {
-      const completion = await openai.createChatCompletion({
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: 'You are a fun AI that guesses someone’s favourite Up & Go flavour based on their trade.' },
-          { role: 'user', content: `Their trade is: ${incomingMsg}` }
-        ]
-      });
+    const completion = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [
+    { role: 'system', content: 'You are a fun AI that guesses someone’s favourite Up & Go flavour based on their trade.' },
+    { role: 'user', content: `Their trade is: ${incomingMsg}` }
+  ]
+});
+
 
       reply = completion.data.choices[0].message.content;
     } catch (err) {
@@ -190,4 +193,4 @@ app.post('/sms', async (req, res) => {
 const host = process.env.HOST || '0.0.0.0';
 app.listen(port, host, () => {
   console.log(`✅ Server running at http://${host}:${port}`);
-});
+});  
