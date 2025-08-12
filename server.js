@@ -4,35 +4,25 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const twilio = require('twilio');
 const rateLimit = require('express-rate-limit');
-const { createClient } = require('@supabase/supabase-js');
 
-// For OpenAI latest SDK in CommonJS, import dynamically:
-const OpenAI = require('openai').default;
-
-const app = express();
-const port = process.env.PORT || 3001;
-
-// Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-// Twilio
+// Twilio client
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
 
 // OpenAI client
+const OpenAI = require('openai').default;
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const app = express();
+const port = process.env.PORT || 3001;
+
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use('/sms', bodyParser.urlencoded({ extended: false })); // Ensure Twilio webhook is parsed
 app.use(express.static('public'));
 
 // Logger
@@ -41,7 +31,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiter
+// Rate limiter for SMS endpoint (adjust as needed)
 const smsLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
@@ -80,9 +70,9 @@ async function sendSmsWithRetry(msg, to, maxRetries = 2) {
   }
 }
 
-// POST /send-sms
+// POST /send-sms (just sends SMS, no DB interaction)
 app.post('/send-sms', smsLimiter, async (req, res) => {
-  const { name, business, email, phone, signupTime } = req.body;
+  const { name, phone, signupTime } = req.body;
 
   const timeTaken = Date.now() - Number(signupTime || 0);
   if (timeTaken < 1000) return res.status(400).send('Bot-like behavior');
@@ -92,49 +82,20 @@ app.post('/send-sms', smsLimiter, async (req, res) => {
   const formattedPhone = formatPhone(phone);
   if (!isValidAUSMobile(formattedPhone)) return res.status(400).send('Invalid Australian mobile number');
 
-  const displayName = name?.trim() || 'legend';
-  const businessName = business?.trim() || 'your tradie';
-
-const smsMessages = [ 
-  `Hey ${name || 'legend'}, you’re officially on the TradeAssist waitlist — no more missed jobs, even when you’re neckin' an Up & Go on the run!`,
-  `Now rip the lid off that brekkie juice, ${name || 'mate'} 💪 — we’ll handle the calls while you handle the smoko.`,
-];
-
+  const smsMessages = [ 
+    `Hey ${name || 'legend'}, you’re officially on the TradeAssist waitlist — no more missed jobs, even when you’re neckin' an Up & Go on the run!`,
+    `Now rip the lid off that brekkie juice, ${name || 'mate'} 💪 — we’ll handle the calls while you handle the smoko.`,
+  ];
 
   try {
-    const { error } = await supabase.from('signups').insert([
-      { name, business, email, phone: formattedPhone }
-    ]);
-    if (error) {
-      console.error('❌ Supabase insert error:', error.message);
-      return res.status(500).send('Database error');
-    }
-
     for (const msg of smsMessages) {
       await sendSmsWithRetry(msg, formattedPhone);
       await delay(1500);
     }
-
     res.redirect('/success');
   } catch (err) {
-    console.error('❌ Error during signup:', err.message);
-    res.status(500).send('Failed to onboard user');
-  }
-});
-
-// GET /signup-count
-app.get('/signup-count', async (req, res) => {
-  try {
-    const { count, error } = await supabase
-      .from('signups')
-      .select('*', { count: 'exact', head: true });
-
-    if (error) throw error;
-
-    res.json({ count: count || 0 });
-  } catch (error) {
-    console.error('Error fetching signup count:', error.message);
-    res.status(500).json({ error: 'Failed to get signup count' });
+    console.error('❌ Error sending SMS:', err.message);
+    res.status(500).send('Failed to send SMS');
   }
 });
 
@@ -150,7 +111,6 @@ app.post('/sms', async (req, res) => {
 
   console.log(`📩 Incoming SMS from ${from}: ${incomingMsg}`);
 
-  // Simple rule-based flavour guess
   const tradeFlavours = {
     sparky: 'Chocolate',
     electrician: 'Chocolate',
@@ -164,17 +124,14 @@ app.post('/sms', async (req, res) => {
   if (tradeFlavours[incomingMsg]) {
     reply = `Based on being a ${incomingMsg}, I’m guessing your favourite Up & Go flavour is ${tradeFlavours[incomingMsg]} 🥤. Did I nail it?`;
   } else {
-    // Fall back to AI if trade not in our list
     try {
-    const completion = await openai.chat.completions.create({
-  model: 'gpt-4',
-  messages: [
-    { role: 'system', content: 'You are a fun AI that guesses someone’s favourite Up & Go flavour based on their trade.' },
-    { role: 'user', content: `Their trade is: ${incomingMsg}` }
-  ]
-});
-
-
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: 'You are a fun AI that guesses someone’s favourite Up & Go flavour based on their trade.' },
+          { role: 'user', content: `Their trade is: ${incomingMsg}` }
+        ]
+      });
       reply = completion.data.choices[0].message.content;
     } catch (err) {
       console.error('❌ OpenAI error:', err.message);
@@ -182,7 +139,6 @@ app.post('/sms', async (req, res) => {
     }
   }
 
-  // Send reply to Twilio
   const MessagingResponse = twilio.twiml.MessagingResponse;
   const twiml = new MessagingResponse();
   twiml.message(reply);
@@ -193,4 +149,4 @@ app.post('/sms', async (req, res) => {
 const host = process.env.HOST || '0.0.0.0';
 app.listen(port, host, () => {
   console.log(`✅ Server running at http://${host}:${port}`);
-});  
+});

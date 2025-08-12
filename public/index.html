@@ -294,11 +294,7 @@ main {
     </p>
   </div>
 
-  <!-- Urgency message -->
-  <div id="signupCountMessage" style="text-align:center; margin-bottom:1rem; color:#FF6B00; font-weight:700; font-size:1.1rem;">
-    Loading current waitlist status...
-  </div>
-
+  <!-- Removed signupCountMessage div -->
 
 <main>
   <form id="signupForm" autocomplete="off" novalidate>
@@ -314,13 +310,11 @@ main {
   </form>
 </main>
 
-
-<div id="loadingScreen" class="loading-screen">
+<div id="loadingScreen" class="loading-screen" style="display:none;">
   <h2 style="font-family: 'Anton', sans-serif; font-weight: 700; font-size: 2rem; margin-bottom: 1rem;">
     You're in! See how TradeAssist A.I instantly follows up on missed calls.
   </h2>
 </div>
-
 
 <script>
   const canvas = document.getElementById('matrixCanvas');
@@ -406,40 +400,11 @@ main {
   animate();
 </script>
 
-
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const FOUNDERS_LIMIT = 150;
-
     const form = document.getElementById('signupForm');
     const loadingScreen = document.getElementById('loadingScreen');
     const button = form.querySelector('button');
-    const signupCountMessage = document.getElementById('signupCountMessage');
-
-    async function updateSignupCount() {
-      try {
-        const res = await fetch('/signup-count');
-        if (!res.ok) throw new Error('Failed to fetch signup count');
-        const data = await res.json();
-        const count = data.count || 0;
-        const spotsLeft = FOUNDERS_LIMIT - count;
-
-        if (spotsLeft > 0) {
-          signupCountMessage.innerHTML = `🔥 ${count} users joined! Only ${spotsLeft} spot${spotsLeft === 1 ? '' : 's'} left for the $1/day Founders Deal.<br><strong>📲 Priority onboarding now open!</strong>`;
-          signupCountMessage.style.color = '#FF6B00';
-        } else {
-          signupCountMessage.textContent = `🚨 Founders Deal is fully booked. Join the waitlist to secure your spot at regular pricing.`;
-          signupCountMessage.style.color = '#FF4444';
-        }
-      } catch (err) {
-        signupCountMessage.textContent = 'Unable to load waitlist status.';
-        signupCountMessage.style.color = '#888';
-        console.error(err);
-      }
-    }
-
-    updateSignupCount();
-    setInterval(updateSignupCount, 30000);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -449,10 +414,6 @@ main {
         return;
       }
 
-      if (signupCountMessage.textContent.includes('fully booked')) {
-        alert('Sorry, the $1/day Founders Deal is fully booked. You can still join the waitlist.');
-      }
-
       loadingScreen.style.display = 'block';
       button.disabled = true;
 
@@ -460,8 +421,6 @@ main {
 
       const formData = {
        name: form.name.value.trim(),
-       business: form.business.value.trim(),
-       email: form.email.value.trim(),
        phone: form.phone.value.trim(),
        signupTime: form.signupTime.value
       };
@@ -484,28 +443,6 @@ main {
         button.disabled = false;
       }
     });
-
-    const customerBtn = document.getElementById('customerViewBtn');
-    const tradieBtn = document.getElementById('tradieViewBtn');
-    const customerPreview = document.getElementById('customerSmsPreview');
-    const tradiePreview = document.getElementById('tradieSmsPreview');
-
-    customerBtn.addEventListener('click', () => {
-      customerPreview.style.display = 'block';
-      tradiePreview.style.display = 'none';
-      customerBtn.disabled = true;
-      tradieBtn.disabled = false;
-    });
-
-    tradieBtn.addEventListener('click', () => {
-      customerPreview.style.display = 'none';
-      tradiePreview.style.display = 'block';
-      tradieBtn.disabled = true;
-      customerBtn.disabled = false;
-    });
-
-    // Optionally auto-trigger customer view on load:
-    // customerBtn.click();
   });
 </script>
 
