@@ -297,17 +297,18 @@ main {
   <!-- Removed signupCountMessage div -->
 
 <main>
-  <form id="signupForm" autocomplete="off" novalidate>
-    <label for="name">Full Name</label>
-    <input type="text" id="name" name="name" placeholder="John Smith" required />
+<form id="signupForm" autocomplete="off" novalidate>
+  <label for="name">Full Name</label>
+  <input type="text" id="name" name="name" placeholder="John Smith" required />
 
-    <label for="phone">Mobile Number</label>
-    <input type="tel" id="phone" name="phone" placeholder="0400 000 000" pattern="[0-9\s\-+]+" required />
+  <label for="phone">Mobile Number</label>
+  <input type="tel" id="phone" name="phone" placeholder="0400 000 000" pattern="[0-9\s\-+]+" required />
 
-    <input type="hidden" name="signupTime" id="signupTime" />
+  <input type="hidden" name="signupTime" id="signupTime" />
 
-    <button type="submit">Join Waitlist</button>
-  </form>
+  <button type="submit">Join Waitlist</button>
+</form>
+
 </main>
 
 <div id="loadingScreen" class="loading-screen" style="display:none;">
@@ -417,7 +418,7 @@ main {
       loadingScreen.style.display = 'block';
       button.disabled = true;
 
-      form.signupTime.value = Date.now(); // set signup time just before submission
+      form.signupTime.value = Date.now().toString();
 
       const formData = {
        name: form.name.value.trim(),
